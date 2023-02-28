@@ -261,6 +261,7 @@ end
 
 fps=Screen('FrameRate', win);      % frames per second
 ifi=Screen('GetFlipInterval', win);
+
 if fps==0
    fps=1/ifi;
 end
@@ -270,16 +271,20 @@ LinesPointsVec(2,1:4) =  [yf_top(1),  yf_top(2), yf_bot(1),  yf_bot(2)];
 
 %% Experimental 
 
-nframes=90; %determines duration of movement (framerate assumed to be 60Hz)
+nframes1=90; %determines duration of movement (framerate assumed to be 60Hz)
+nframes2=60;
+% Reduce nframes to increase speed of moving ball
 
-dx1 = (xf_top(2) - xf_top(1))/nframes;
-dy1 = (yf_top(2) - yf_top(1))/nframes;
-dx2 = (xf_bot(2) - xf_bot(1))/nframes;
-dy2 = (yf_bot(2) - yf_bot(1))/nframes;
+dx1 = (xf_top(2) - xf_top(1))/nframes1;
+dy1 = (yf_top(2) - yf_top(1))/nframes1;
+dx2 = (xf_bot(2) - xf_bot(1))/nframes2;
+dy2 = (yf_bot(2) - yf_bot(1))/nframes2;
+
+nframes_max = max(nframes1, nframes2);
 
 dxdy = [dx1 dx2; dy1 dy2];
 
-start_pos = 'bot'; % for testing purposes
+start_pos = 'bot'; % for testing purposes. will be included in new stimulus file
 
 if strcmp(start_pos, 'top')
    
@@ -294,7 +299,7 @@ end
 
 vbl = Screen('Flip', win);
 
-for i = 1:nframes
+for i = 1:nframes_max
     
     if (i>1)
 
