@@ -40,7 +40,7 @@ alpha=1;
 
 KbName('UnifyKeyNames');
 escKey = KbName('ESCAPE');
-%     
+
 %     inputs = {'Participant number'};
 %     defaults = {'0'};	%prompt for experiment parameters, read inputs into variables%
 %     answer = inputdlg(inputs, 'Face_LineJudgement', 2, defaults);
@@ -53,7 +53,7 @@ directory = fileparts(mfilename('fullpath'));
 %     FileName=strcat(DefaultName,'.xls');
 %     outputfile = fopen(fullfile(PathName,FileName),'w+'); 						  
 %     fprintf(outputfile, 'PartId\t Trial Number\t Trigger\t Jitter (s)\n');
-%     
+
 [win, winDimen] = Screen('OpenWindow', max(Screen('Screens')));
 Screen('FillRect', win, bgcolor);
 center = [winDimen(3)/2, winDimen(4)/2];	%set screen parameters and important stimulus positions%
@@ -63,6 +63,10 @@ FixDur = 2.0;
 ProbeDur = 1.5;
 TrialNum = 200;
 resizePercent = .5;
+
+% ---------------------------------------
+% initialize line positions
+% ---------------------------------------
 
 %Top = Left; Bottom = Right;
 straightLineTop_point1x    = (1/8)*winDimen(3)*-1 ;
@@ -84,7 +88,7 @@ HideCursor();
 %-------------------------------------------------------------------------%
     dotColorBlack = black;
     dotColorWhite = white;
-    dotSizePix = 2; 
+    dotSizePix = 5; 
     
 %-------------------------------------------------------------------------%
 %                                Load Task List                           %
@@ -141,22 +145,11 @@ for i=1:TrialNum
                
             end
         end
-%         if i == round(.5*TrialNum)%%% 15s break after 1/2 of trials complete %%%
-%            Screen('FillRect',win,gray);
-%            Screen('TextSize',win,24);
-%            DrawFormattedText(win, 'Great Job!\n Please remain still and feel free to rest your eyes.\n The task will resume in 15 seconds.','center','center',black); 
-%            Screen('Flip',win);
-%            WaitSecs(15);
-%            Screen('FillRect',win,black);
-% 
-%            
-%         end
-        
-        
+
 if isnumeric(trial_index.Trigger(i))==1 
                 
 %-------------------------------------------------------------------------%
-%                           Set degree to rotate BOTH LINES
+%                           Set degree to rotate BOTH LINES 
 %-------------------------------------------------------------------------%               
 
 if strcmp(trial_index.Parallel(i),"P")==1 & strcmp(trial_index.Line(i),"C")
@@ -262,30 +255,74 @@ elseif strcmp(trial_index.Parallel(i),"N") & strcmp(trial_index.TargetSide(i),"R
 
 end
 
+    % ------------------------------
+    % Initialize movement parameters
+    % ------------------------------
 
+fps=Screen('FrameRate', win);      % frames per second
+ifi=Screen('GetFlipInterval', win);
+if fps==0
+   fps=1/ifi;
+end
 
 LinesPointsVec(1,1:4) =  [xf_top(1),  xf_top(2), xf_bot(1),  xf_bot(2)]; %set up lines from previous loop
 LinesPointsVec(2,1:4) =  [yf_top(1),  yf_top(2), yf_bot(1),  yf_bot(2)];
 
+%% Experimental 
 
-  Face = trial_index.FaceFile(i);   %find face file for this trial
-  base_path = list(1).folder;
-  image_path_face = fullfile(base_path,Face);
-  trial_image_face = imread(char(image_path_face));
-  trial_image_face = imresize(trial_image_face,resizePercent);
-  trial_image_texture_face = Screen('MakeTexture',win, trial_image_face);
-  FaceStim_rect=Screen('Rect', trial_image_texture_face);
-  Screen('DrawTexture',win,trial_image_texture_face, [],CenterRect(FaceStim_rect, winDimen)); %draw face texture on screen
-  Screen('DrawLines', win, LinesPointsVec , 5, colvect, center, 1); %draw lines from previous loop setup
-  Screen('DrawDots', win, [0 0], dotSizePix, dotColorWhite, [], 2); %propixx dot
-  Screen('DrawingFinished',win);
-  Screen('Flip',win);
-  % write(com1,trial_index.Trigger(i),"uint16");
-  WaitSecs(ProbeDur);
+nframes=90; %determines duration of movement (framerate assumed to be 60Hz)
 
+dx1 = (xf_top(2) - xf_top(1))/nframes;
+dy1 = (yf_top(2) - yf_top(1))/nframes;
+dx2 = (xf_bot(2) - xf_bot(1))/nframes;
+dy2 = (yf_bot(2) - yf_bot(1))/nframes;
 
+dxdy = [dx1 dx2; dy1 dy2];
+
+start_pos = 'bot'; % for testing purposes
+
+if strcmp(start_pos, 'top')
+   
+    xymatrix = LinesPointsVec(1:2, 1:2:end); % determine which points are starting points based on up / down movement
+    
+else
+    
+    xymatrix = LinesPointsVec(1:2, 2:2:end); % determine which points are starting points based on up / down movement
+    dxdy = -dxdy;
+    
+end
+
+vbl = Screen('Flip', win);
+
+for i = 1:nframes
+    
+    if (i>1)
+
+        Screen('DrawDots', win, xymatrix, dotSizePix, dotColorWhite, center, 1);  % change 1 to 0 or 4 to draw square dots
+
+        Screen('DrawingFinished', win); % Tell PTB that no further drawing commands will follow before Screen('Flip')
+    end
+
+    xymatrix = xymatrix + dxdy; % move dots
+
+    % xymatrix = transpose(xymatrix);
+    
+    waitframes=1;
+
+    vbl=Screen('Flip', win, vbl + (waitframes-0.5)*ifi);
+    
+end
+
+%   Screen('DrawLines', win, LinesPointsVec , 5, colvect, center, 1); %draw lines from previous loop setup
+%   Screen('DrawDots', win, [0 0], dotSizePix, dotColorWhite, [], 2); %propixx dot
+%   Screen('DrawingFinished',win);
+%   Screen('Flip',win);
+%   % write(com1,trial_index.Trigger(i),"uint16");
+%   WaitSecs(ProbeDur);
+
+%%
 %------------------------------------------------------------------------%
-%                               Fixation         %  
+%                               Fixation                                 %  
 %------------------------------------------------------------------------%
     Screen('DrawLines',win,fixLineCoords,3,textcolor,center);
     Screen('DrawDots', win, [0 0], dotSizePix, dotColorBlack, [], 2);
@@ -296,14 +333,10 @@ LinesPointsVec(2,1:4) =  [yf_top(1),  yf_top(2), yf_bot(1),  yf_bot(2)];
 
 
 
-end %trial loop
-  
-%     fprintf(outputfile, '%s\t %d\t %d\t %.5f\n', PartID, i, trial_index.Trigger(i), JitterLengths(1,i));
+end 
  
 end
 
-% clear com1;
-% fclose(outputfile);
 clearvars;
 Priority(0);
 sca;      
