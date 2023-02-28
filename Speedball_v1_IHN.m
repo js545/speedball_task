@@ -301,7 +301,7 @@ vbl = Screen('Flip', win);
 
 for i = 1:nframes_max
     
-    if (i>1)
+    if (i>1 & xymatrix(1, 1) < xf_top(2) & xymatrix(1, 1) > xf_top(1) & xymatrix(1,2) < xf_bot(2) & xymatrix(1,2) > xf_bot(1))
 
         Screen('DrawDots', win, xymatrix, dotSizePix, dotColorWhite, center, 1);  % change 1 to 0 or 4 to draw square dots
 
