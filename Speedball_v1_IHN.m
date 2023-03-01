@@ -8,11 +8,15 @@
 %-------------------------------------------------------------------------%
 % fixation = 60
 
-% small angle difference, both top = 41
-% small angle difference, both bottom = 42
+% left, top, easy = 111
+% left, top, hard = 112
+% left, bottom, easy = 121
+% left, bottom, hard = 122
 
-% large angle difference, both top = 81
-% large angle difference, both bottom = 82
+% right, top, easy = 211
+% right, top, hard = 212
+% right, bottom, easy = 221
+% right, bottom, hard = 222
 
 %-------------------------------------------------------------------------%
 %                             General Setup                               %
@@ -65,6 +69,7 @@ Screen('Flip',win);
 
 FixDur = 2.0;
 TrialNum = 200;
+ProbeDur = 1.5;
 
 % ------------------------------------------------------------------------%
 %                        Initialize line positions                        %
@@ -147,7 +152,7 @@ for i=1:TrialNum
 %                           Set degree to rotate BOTH LINES               %
 %-------------------------------------------------------------------------%               
 
-        if strcmp(trial_index.Parallel(i),"P")==1 & strcmp(trial_index.Line(i),"C")
+        if strcmp(trial_index.Parallel(i),"P")==1 && strcmp(trial_index.Line(i),"C")
             [xf_top, yf_top] = lrotate(...
             [straightLineTop_point1x straightLineTop_point2x], ... % x coordinates of the 2 points in the line
             [straightLineTop_point1y straightLineTop_point2y], ... % y coordinates of the 2 points in the line
@@ -250,44 +255,50 @@ for i=1:TrialNum
 
         end
 
-        % ------------------------------
-        % Initialize movement parameters
-        % ------------------------------
-
-    fps=Screen('FrameRate', win);      % frames per second
-    ifi=Screen('GetFlipInterval', win);
-
-        if fps==0
-           fps=1/ifi;
-        end
-
-    LinesPointsVec(1,1:4) =  [xf_top(1),  xf_top(2), xf_bot(1),  xf_bot(2)]; %set up lines from previous loop
+    LinesPointsVec(1,1:4) =  [xf_top(1),  xf_top(2), xf_bot(1),  xf_bot(2)];
     LinesPointsVec(2,1:4) =  [yf_top(1),  yf_top(2), yf_bot(1),  yf_bot(2)];
+        
+% ------------------------------------------------------------------------%
+%                     Initialize movement parameters                      %
+% ------------------------------------------------------------------------%
 
-    %% Experimental 
-
-    nframes1=90; %determines duration of movement (framerate assumed to be 60Hz)
-    nframes2=60;
-    % Reduce nframes to increase speed of moving ball
-
-    dx1 = (xf_top(2) - xf_top(1))/nframes1;
-    dy1 = (yf_top(2) - yf_top(1))/nframes1;
-    dx2 = (xf_bot(2) - xf_bot(1))/nframes2;
-    dy2 = (yf_bot(2) - yf_bot(1))/nframes2;
-
+    fps=Screen('FrameRate', win);
+    
+    rate_adjustment = 1.20;
+        
+    nframes1 = ProbeDur*fps;
+    nframes2 = ProbeDur*fps*rate_adjustment;
     nframes_max = max(nframes1, nframes2);
+    
+    faster_side='R'; % EXPERIMENTATION ONLY
+    
+        if strcmp(faster_side, 'L')
+            
+            dx1 = (xf_top(2) - xf_top(1))/nframes1;
+            dy1 = (yf_top(2) - yf_top(1))/nframes1;
+            dx2 = (xf_bot(2) - xf_bot(1))/nframes2;
+            dy2 = (yf_bot(2) - yf_bot(1))/nframes2;
+            
+        elseif strcmp(faster_side, 'R')
+            
+            dx1 = (xf_top(2) - xf_top(1))/nframes2;
+            dy1 = (yf_top(2) - yf_top(1))/nframes2;
+            dx2 = (xf_bot(2) - xf_bot(1))/nframes1;
+            dy2 = (yf_bot(2) - yf_bot(1))/nframes1;
+            
+        end
 
     dxdy = [dx1 dx2; dy1 dy2];
 
-    start_pos = 'bot'; % for testing purposes. will be included in new stimulus file
-
+    start_pos = 'top'; % EXPERIMENTATION ONLY
+    
         if strcmp(start_pos, 'top')
 
-            xymatrix = LinesPointsVec(1:2, 1:2:end); % determine which points are starting points based on up / down movement
+            xymatrix = LinesPointsVec(1:2, 1:2:end);
 
         else
 
-            xymatrix = LinesPointsVec(1:2, 2:2:end); % determine which points are starting points based on up / down movement
+            xymatrix = LinesPointsVec(1:2, 2:2:end);
             dxdy = -dxdy;
 
         end
@@ -296,27 +307,28 @@ for i=1:TrialNum
 
         for i = 1:nframes_max
 
-            if (i>1 & xymatrix(1, 1) < xf_top(2) & xymatrix(1, 1) > xf_top(1) & xymatrix(1,2) < xf_bot(2) & xymatrix(1,2) > xf_bot(1))
+            if (i>1 && xymatrix(1, 1) < xf_top(2) && ...
+                    xymatrix(1, 1) > xf_top(1) && ...
+                    xymatrix(1,2) < xf_bot(2) && xymatrix(1,2) > xf_bot(1))
 
-                Screen('DrawDots', win, xymatrix, dotSizePix, dotColorWhite, center, 1);  % change 1 to 0 or 4 to draw square dots
+                Screen('DrawDots', win, xymatrix, dotSizePix, dotColorWhite, center, 1);
 
                 Screen('DrawingFinished', win); % Tell PTB that no further drawing commands will follow before Screen('Flip')
             end
 
-            xymatrix = xymatrix + dxdy; % move dots
+            xymatrix = xymatrix + dxdy;
 
             waitframes=1;
 
-            vbl=Screen('Flip', win, vbl + (waitframes-0.5)*ifi);
+            vbl=Screen('Flip', win, vbl + (waitframes-0.5)/fps);
 
         end
 
-    %   % write(com1,trial_index.Trigger(i),"uint16");
+    % write(com1,trial_index.Trigger(i),"uint16");
 
-    %%
-    %------------------------------------------------------------------------%
-    %                               Fixation                                 %  
-    %------------------------------------------------------------------------%
+%------------------------------------------------------------------------%
+%                               Fixation                                 %  
+%------------------------------------------------------------------------%
         Screen('DrawLines',win,fixLineCoords,3,textcolor,center);
         Screen('DrawDots', win, [0 0], dotSizePix, dotColorBlack, [], 2);
         Screen('DrawingFinished', win);  					
