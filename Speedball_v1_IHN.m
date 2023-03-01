@@ -100,7 +100,8 @@ dotSizePix = 5;
 %                              Load Task List                             %
 %-------------------------------------------------------------------------%  
 
-table = fullfile(directory, 'stimList_FaceLine_Practice.txt'); 
+% table = fullfile(directory, 'stimList_FaceLine_Practice.txt'); 
+table = fullfile(directory, 'speedball_practice_test.txt');
 opts = detectImportOptions(table); %setup table import from selected
 trial_index = readtable(table,opts);
 clear opts;
@@ -270,16 +271,16 @@ for i=1:TrialNum
     nframes2 = ProbeDur*fps*rate_adjustment;
     nframes_max = max(nframes1, nframes2);
     
-    faster_side='R'; % EXPERIMENTATION ONLY
+    % faster_side='R'; % EXPERIMENTATION ONLY
     
-        if strcmp(faster_side, 'L')
+        if strcmp(trial_index.Side(i), 'L')
             
             dx1 = (xf_top(2) - xf_top(1))/nframes1;
             dy1 = (yf_top(2) - yf_top(1))/nframes1;
             dx2 = (xf_bot(2) - xf_bot(1))/nframes2;
             dy2 = (yf_bot(2) - yf_bot(1))/nframes2;
             
-        elseif strcmp(faster_side, 'R')
+        elseif strcmp(trial_index.Side(i), 'R')
             
             dx1 = (xf_top(2) - xf_top(1))/nframes2;
             dy1 = (yf_top(2) - yf_top(1))/nframes2;
@@ -290,13 +291,13 @@ for i=1:TrialNum
 
     dxdy = [dx1 dx2; dy1 dy2];
 
-    start_pos = 'top'; % EXPERIMENTATION ONLY
+    % start_pos = 'top'; % EXPERIMENTATION ONLY
     
-        if strcmp(start_pos, 'top')
+        if strcmp(trial_index.Start_pos(i),"top")
 
             xymatrix = LinesPointsVec(1:2, 1:2:end);
 
-        else
+        elseif strcmp(trial_index.Start_pos(i), 'bot')
 
             xymatrix = LinesPointsVec(1:2, 2:2:end);
             dxdy = -dxdy;
