@@ -1,5 +1,8 @@
 %----------------------------Face_LineJudgement---------------------------%
 %AUTHOR INFORMATION: Jake J. Son, Nate M. Petro
+%Dependencies: lrotate.m, written by Nate M. Petro
+%For any questions related to line positions / rotation, check with Nate.
+%For movement, check with Jake.
 %Institute for Human Neuroscience, Boys Town National Research Hospital
 %INPUTS: Participant Number
 
@@ -7,6 +10,11 @@
 %                             Trigger Legend                              %
 %-------------------------------------------------------------------------%
 % fixation = 60
+
+% Three digit number for triggers.
+% First number = left (1) or right (2)
+% Second number = top (1) or bottomr (2)
+% Third number = easy (1) or hard (2)
 
 % left, top, easy = 111
 % left, top, hard = 112
@@ -46,17 +54,17 @@ KbName('UnifyKeyNames');
 escKey = KbName('ESCAPE');
 
 inputs = {'Participant number'};
-defaults = {'0'};	%prompt for experiment parameters, read inputs into variables%
-answer = inputdlg(inputs, 'Face_LineJudgement', 2, defaults);
+defaults = {'0'};	%prompt for experiment parameters, read inputs into variables
+answer = inputdlg(inputs, 'Speedball_', 2, defaults);
 [PartID] = deal(answer{:});
 
 directory = fileparts(mfilename('fullpath'));
 
-% DefaultName = strcat('Speedball_', PartID);
-% PathName=strcat(directory,'\output');
-% FileName=strcat(DefaultName,'.xls');
-% outputfile = fopen(fullfile(PathName,FileName),'w+'); 						  
-% fprintf(outputfile, 'PartId\t Trial Number\t Trigger\t Jitter (s)\n');
+DefaultName = strcat('Speedball_', PartID);
+PathName=strcat(directory,'\output');
+FileName=strcat(DefaultName,'.xls');
+outputfile = fopen(fullfile(PathName,FileName),'w+'); 						  
+fprintf(outputfile, 'PartId\t Trial Number\t Trigger\t Jitter (s)\n');
 
 [win, winDimen] = Screen('OpenWindow', max(Screen('Screens')));
 Screen('FillRect', win, bgcolor);
@@ -133,6 +141,8 @@ Screen('DrawingFinished', win);
 Screen('Flip',win);
 % write(com1,60,"uint16");
 WaitSecs(FixDur);
+
+TrialNum = 10; %FOR DEMO ONLY. REMOVE FOR ACTUAL TASK.
 
 for i=1:TrialNum
     
@@ -263,24 +273,22 @@ for i=1:TrialNum
 %                     Initialize movement parameters                      %
 % ------------------------------------------------------------------------%
 
-    fps=Screen('FrameRate', win);
+    fps=Screen('FrameRate', win); %Output in Hz
     
-    rate_adjustment = 1.20;
+    rate_adjustment = 1.20; %Speed ratio between two balls
         
-    nframes1 = ProbeDur*fps;
-    nframes2 = ProbeDur*fps*rate_adjustment;
+    nframes1 = ProbeDur*fps; %How many frames are needed for ProbeDur seconds (for the faster ball)
+    nframes2 = ProbeDur*fps*rate_adjustment; %Same as nframes1, but for the slower ball
     nframes_max = max(nframes1, nframes2);
-    
-    % faster_side='R'; % EXPERIMENTATION ONLY
-    
-        if strcmp(trial_index.Side(i), 'L')
+        
+        if strcmp(trial_index.Side(i), 'L') %If the faster ball is on the Left side
             
-            dx1 = (xf_top(2) - xf_top(1))/nframes1;
+            dx1 = (xf_top(2) - xf_top(1))/nframes1; 
             dy1 = (yf_top(2) - yf_top(1))/nframes1;
             dx2 = (xf_bot(2) - xf_bot(1))/nframes2;
             dy2 = (yf_bot(2) - yf_bot(1))/nframes2;
             
-        elseif strcmp(trial_index.Side(i), 'R')
+        elseif strcmp(trial_index.Side(i), 'R') %If the faster ball is on the Right side
             
             dx1 = (xf_top(2) - xf_top(1))/nframes2;
             dy1 = (yf_top(2) - yf_top(1))/nframes2;
@@ -289,15 +297,13 @@ for i=1:TrialNum
             
         end
 
-    dxdy = [dx1 dx2; dy1 dy2];
-
-    % start_pos = 'top'; % EXPERIMENTATION ONLY
+    dxdy = [dx1 dx2; dy1 dy2]; %Vector for pixel movement (Cartesian coordinates) per frame
     
-        if strcmp(trial_index.Start_pos(i),"top")
+        if strcmp(trial_index.Start_pos(i),"top") %If the start position of both balls is the top of the screen
 
             xymatrix = LinesPointsVec(1:2, 1:2:end);
 
-        elseif strcmp(trial_index.Start_pos(i), 'bot')
+        elseif strcmp(trial_index.Start_pos(i), 'bot') %If the start position of both balls is the bottom of the screen
 
             xymatrix = LinesPointsVec(1:2, 2:2:end);
             dxdy = -dxdy;
@@ -308,20 +314,13 @@ for i=1:TrialNum
 
         for i = 1:nframes_max
 
-            if (i>1 && xymatrix(1, 1) < xf_top(2) && ...
-                    xymatrix(1, 1) > xf_top(1) && ...
-                    xymatrix(1,2) < xf_bot(2) && xymatrix(1,2) > xf_bot(1))
+            Screen('DrawDots', win, xymatrix, dotSizePix, dotColorWhite, center, 1);
 
-                Screen('DrawDots', win, xymatrix, dotSizePix, dotColorWhite, center, 1);
+            Screen('DrawingFinished', win); 
+            
+            xymatrix = xymatrix + dxdy; %Change ball positions
 
-                Screen('DrawingFinished', win); % Tell PTB that no further drawing commands will follow before Screen('Flip')
-            end
-
-            xymatrix = xymatrix + dxdy;
-
-            waitframes=1;
-
-            vbl=Screen('Flip', win, vbl + (waitframes-0.5)/fps);
+            vbl=Screen('Flip', win, vbl + 1/fps); %Draw dot once per frame. If 1/fps set to 0, draws lines
 
         end
 
@@ -330,14 +329,13 @@ for i=1:TrialNum
 %------------------------------------------------------------------------%
 %                               Fixation                                 %  
 %------------------------------------------------------------------------%
+
         Screen('DrawLines',win,fixLineCoords,3,textcolor,center);
         Screen('DrawDots', win, [0 0], dotSizePix, dotColorBlack, [], 2);
         Screen('DrawingFinished', win);  					
         Screen('Flip',win);
         % write(com1,60,"uint16");
         WaitSecs(JitterLengths(1,i));
-
-
 
     end 
  
